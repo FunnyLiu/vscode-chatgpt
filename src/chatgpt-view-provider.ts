@@ -1,6 +1,6 @@
 /**
  * @author Ali Gençay
- * https://github.com/gencay/vscode-chatgpt
+ * https://github.com/gencay/chinamobile-codehelper
  *
  * @license
  * Copyright (c) 2022 - Present, Ali Gençay
@@ -53,9 +53,9 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 	 */
 	private leftOverMessage?: any;
 	constructor(private context: vscode.ExtensionContext) {
-		this.subscribeToResponse = vscode.workspace.getConfiguration("chatgpt").get("response.showNotification") || false;
-		this.autoScroll = !!vscode.workspace.getConfiguration("chatgpt").get("response.autoScroll");
-		this.model = vscode.workspace.getConfiguration("chatgpt").get("gpt3.model") as string;
+		this.subscribeToResponse = vscode.workspace.getConfiguration("chinamobile-codehelper").get("response.showNotification") || false;
+		this.autoScroll = !!vscode.workspace.getConfiguration("chinamobile-codehelper").get("response.autoScroll");
+		this.model = vscode.workspace.getConfiguration("chinamobile-codehelper").get("gpt3.model") as string;
 
 		this.setMethod();
 		this.setChromeExecutablePath();
@@ -85,7 +85,8 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 		webviewView.webview.onDidReceiveMessage(async data => {
 			switch (data.type) {
 				case 'addFreeTextQuestion':
-					this.sendApiRequest(data.value, { command: "freeText" });
+					// this.sendApiRequest(data.value, { command: "freeText" });
+					this.sendApiRequestToYiYan(data.value, { command: "freeText" });
 					break;
 				case 'editCode':
 					const escapedString = (data.value as string).replace(/\$/g, '\\$');;
@@ -126,12 +127,12 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 					});
 					break;
 				case 'openSettings':
-					vscode.commands.executeCommand('workbench.action.openSettings', "@ext:YOUR_PUBLISHER_NAME.vscode-chatgpt chatgpt.");
+					vscode.commands.executeCommand('workbench.action.openSettings', "@ext:myCodeHelper.chinamobile-codehelper chinamobile-codehelper.");
 
 					this.logEvent("settings-opened");
 					break;
 				case 'openSettingsPrompt':
-					vscode.commands.executeCommand('workbench.action.openSettings', "@ext:YOUR_PUBLISHER_NAME.vscode-chatgpt promptPrefix");
+					vscode.commands.executeCommand('workbench.action.openSettings', "@ext:myCodeHelper.chinamobile-codehelper promptPrefix");
 
 					this.logEvent("settings-prompt-opened");
 					break;
@@ -171,11 +172,11 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 	}
 
 	public setProxyServer(): void {
-		this.proxyServer = vscode.workspace.getConfiguration("chatgpt").get("proxyServer");
+		this.proxyServer = vscode.workspace.getConfiguration("chinamobile-codehelper").get("proxyServer");
 	}
 
 	public setMethod(): void {
-		this.loginMethod = vscode.workspace.getConfiguration("chatgpt").get("method") as LoginMethod;
+		this.loginMethod = vscode.workspace.getConfiguration("chinamobile-codehelper").get("method") as LoginMethod;
 
 		this.useGpt3 = true;
 		this.useAutoLogin = false;
@@ -183,7 +184,7 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 	}
 
 	public setAuthType(): void {
-		this.authType = vscode.workspace.getConfiguration("chatgpt").get("authenticationType");
+		this.authType = vscode.workspace.getConfiguration("chinamobile-codehelper").get("authenticationType");
 		this.clearSession();
 	}
 
@@ -211,12 +212,12 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 				break;
 		}
 
-		this.chromiumPath = vscode.workspace.getConfiguration("chatgpt").get("chromiumPath") || path;
+		this.chromiumPath = vscode.workspace.getConfiguration("chinamobile-codehelper").get("chromiumPath") || path;
 		this.clearSession();
 	}
 
 	public setProfilePath(): void {
-		this.profilePath = vscode.workspace.getConfiguration("chatgpt").get("profilePath");
+		this.profilePath = vscode.workspace.getConfiguration("chinamobile-codehelper").get("profilePath");
 		this.clearSession();
 	}
 
@@ -235,7 +236,7 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 		}
 
 		const state = this.context.globalState;
-		const configuration = vscode.workspace.getConfiguration("chatgpt");
+		const configuration = vscode.workspace.getConfiguration("chinamobile-codehelper");
 
 		if (this.useGpt3) {
 			if ((this.isGpt35Model && !this.apiGpt35) || (!this.isGpt35Model && !this.apiGpt3) || modelChanged) {
@@ -249,7 +250,7 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 				if (!apiKey) {
 					vscode.window.showErrorMessage("Please add your API Key to use OpenAI official APIs. Storing the API Key in Settings is discouraged due to security reasons, though you can still opt-in to use it to persist it in settings. Instead you can also temporarily set the API Key one-time: You will need to re-enter after restarting the vs-code.", "Store in session (Recommended)", "Open settings").then(async choice => {
 						if (choice === "Open settings") {
-							vscode.commands.executeCommand('workbench.action.openSettings', "chatgpt.gpt3.apiKey");
+							vscode.commands.executeCommand('workbench.action.openSettings', "chinamobile-codehelper.gpt3.apiKey");
 							return false;
 						} else if (choice === "Store in session (Recommended)") {
 							await vscode.window
@@ -328,7 +329,7 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 
 		this.questionCounter++;
 
-		this.logEvent("api-request-sent", { "chatgpt.command": options.command, "chatgpt.hasCode": String(!!options.code), "chatgpt.hasPreviousAnswer": String(!!options.previousAnswer) });
+		this.logEvent("api-request-sent", { "chinamobile-codehelper.command": options.command, "chinamobile-codehelper.hasCode": String(!!options.code), "chinamobile-codehelper.hasPreviousAnswer": String(!!options.previousAnswer) });
 
 		if (!await this.prepareConversation()) {
 			return;
@@ -340,7 +341,7 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 
 		// If the ChatGPT view is not in focus/visible; focus on it to render Q&A
 		if (this.webView == null) {
-			vscode.commands.executeCommand('vscode-chatgpt.view.focus');
+			vscode.commands.executeCommand('chinamobile-codehelper.view.focus');
 		} else {
 			this.webView?.show?.(true);
 		}
@@ -400,7 +401,7 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 
 			if (this.subscribeToResponse) {
 				vscode.window.showInformationMessage("ChatGPT responded to your question.", "Open conversation").then(async () => {
-					await vscode.commands.executeCommand('vscode-chatgpt.view.focus');
+					await vscode.commands.executeCommand('chinamobile-codehelper.view.focus');
 				});
 			}
 		} catch (error: any) {
@@ -414,7 +415,7 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 
 				vscode.window.showErrorMessage("An error occured. If this is due to max_token you could try `ChatGPT: Clear Conversation` command and retry sending your prompt.", "Clear conversation and retry").then(async choice => {
 					if (choice === "Clear conversation and retry") {
-						await vscode.commands.executeCommand("vscode-chatgpt.clearConversation");
+						await vscode.commands.executeCommand("chinamobile-codehelper.clearConversation");
 						await delay(250);
 						this.sendApiRequest(prompt, { command: options.command, code: options.code });
 					}
@@ -451,6 +452,81 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 	}
 
 	/**
+ * 使用 AK，SK 生成鉴权签名（Access Token）
+ * @return string 鉴权签名信息（Access Token）
+ */
+	public async getAccessToken() {
+		const AK = "U3tt7fLHrXDslMxc8n3qLwM9";
+		const SK = "KjGfm5ygcYLqTH303RGfG5ZN2SBbwBaB";
+		const options = {
+			method: 'POST',
+		};
+
+		return fetch(`https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=${AK}&client_secret=${SK}`, options)
+			.then(response => response.json())
+			.then(data => data.access_token);
+	}
+	public async sendApiRequestToYiYan(prompt: string, options: { command: string, code?: string, previousAnswer?: string, language?: string; }) {
+		if (this.inProgress) {
+			// The AI is still thinking... Do not accept more questions.
+			return;
+		}
+
+		this.questionCounter++;
+
+		// this.logEvent("api-request-sent", { "chinamobile-codehelper.command": options.command, "chinamobile-codehelper.hasCode": String(!!options.code), "chinamobile-codehelper.hasPreviousAnswer": String(!!options.previousAnswer) });
+
+		// if (!await this.prepareConversation()) {
+		// 	return;
+		// }
+
+		this.response = '';
+		let question = this.processQuestion(prompt, options.code, options.language);
+		const responseInMarkdown = !this.isCodexModel;
+
+		// If the ChatGPT view is not in focus/visible; focus on it to render Q&A
+		if (this.webView == null) {
+			vscode.commands.executeCommand('chinamobile-codehelper.view.focus');
+		} else {
+			this.webView?.show?.(true);
+		}
+
+		this.inProgress = true;
+		this.abortController = new AbortController();
+		this.sendMessage({ type: 'showInProgress', inProgress: this.inProgress, showStopButton: this.useGpt3 });
+		this.currentMessageId = this.getRandomId();
+
+		this.sendMessage({ type: 'addQuestion', value: prompt, code: options.code, autoScroll: this.autoScroll });
+
+		const accessToken = await this.getAccessToken();
+		const options2 = {
+			method: 'POST',
+			headers: {
+				// eslint-disable-next-line @typescript-eslint/naming-convention
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				messages: [
+					{
+						role: "user",
+						content: prompt
+					}
+				]
+			}),
+			signal: this.abortController.signal // 将 signal 传递给 fetch 请求的选项中
+		};
+
+		const response = await fetch(`https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/completions?access_token=${accessToken}`, options2);
+		const data = await response.json();
+		console.log('yiyan');
+		// console.log(data);
+		this.sendMessage({ type: 'addResponse', value: data.result, done: true, id: this.currentMessageId, autoScroll: this.autoScroll, responseInMarkdown });
+		this.inProgress = false;
+		this.sendMessage({ type: 'showInProgress', inProgress: this.inProgress });
+	}
+
+
+	/**
 	 * Message sender, stores if a message cannot be delivered
 	 * @param message Message to be sent to WebView
 	 * @param ignoreMessageIfNullWebView We will ignore the command if webView is null/not-focused
@@ -465,14 +541,14 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 
 	private logEvent(eventName: string, properties?: {}): void {
 		// You can initialize your telemetry reporter and consume it here - *replaced with console.debug to prevent unwanted telemetry logs
-		// this.reporter?.sendTelemetryEvent(eventName, { "chatgpt.loginMethod": this.loginMethod!, "chatgpt.authType": this.authType!, "chatgpt.model": this.model || "unknown", ...properties }, { "chatgpt.questionCounter": this.questionCounter });
-		console.debug(eventName, { "chatgpt.loginMethod": this.loginMethod!, "chatgpt.authType": this.authType!, "chatgpt.model": this.model || "unknown", ...properties }, { "chatgpt.questionCounter": this.questionCounter });
+		// this.reporter?.sendTelemetryEvent(eventName, { "chinamobile-codehelper.loginMethod": this.loginMethod!, "chinamobile-codehelper.authType": this.authType!, "chinamobile-codehelper.model": this.model || "unknown", ...properties }, { "chinamobile-codehelper.questionCounter": this.questionCounter });
+		console.debug(eventName, { "chinamobile-codehelper.loginMethod": this.loginMethod!, "chinamobile-codehelper.authType": this.authType!, "chinamobile-codehelper.model": this.model || "unknown", ...properties }, { "chinamobile-codehelper.questionCounter": this.questionCounter });
 	}
 
 	private logError(eventName: string): void {
 		// You can initialize your telemetry reporter and consume it here - *replaced with console.error to prevent unwanted telemetry logs
-		// this.reporter?.sendTelemetryErrorEvent(eventName, { "chatgpt.loginMethod": this.loginMethod!, "chatgpt.authType": this.authType!, "chatgpt.model": this.model || "unknown" }, { "chatgpt.questionCounter": this.questionCounter });
-		console.error(eventName, { "chatgpt.loginMethod": this.loginMethod!, "chatgpt.authType": this.authType!, "chatgpt.model": this.model || "unknown" }, { "chatgpt.questionCounter": this.questionCounter });
+		// this.reporter?.sendTelemetryErrorEvent(eventName, { "chinamobile-codehelper.loginMethod": this.loginMethod!, "chinamobile-codehelper.authType": this.authType!, "chinamobile-codehelper.model": this.model || "unknown" }, { "chinamobile-codehelper.questionCounter": this.questionCounter });
+		console.error(eventName, { "chinamobile-codehelper.loginMethod": this.loginMethod!, "chinamobile-codehelper.authType": this.authType!, "chinamobile-codehelper.model": this.model || "unknown" }, { "chinamobile-codehelper.questionCounter": this.questionCounter });
 	}
 
 	private getWebviewHtml(webview: vscode.Webview) {
@@ -486,7 +562,6 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 		const vendorTurndownJs = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'media', 'vendor', 'turndown.js'));
 
 		const nonce = this.getRandomId();
-
 		return `<!DOCTYPE html>
 			<html lang="en">
 			<head>
@@ -504,27 +579,21 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 				<div class="flex flex-col h-screen">
 					<div id="introduction" class="flex flex-col justify-between h-full justify-center px-6 w-full relative login-screen overflow-auto">
 						<div data-license="isc-gnc-hi-there" class="flex items-start text-center features-block my-5">
-							<div class="flex flex-col gap-3.5 flex-1">
-								<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" class="w-6 h-6 m-auto">
-									<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"></path>
-								</svg>
-								<h2>Features</h2>
-								<ul class="flex flex-col gap-3.5 text-xs">
-									<li class="features-li w-full border border-zinc-700 p-3 rounded-md">Access to your ChatGPT conversation history</li>
-									<li class="features-li w-full border border-zinc-700 p-3 rounded-md">Improve your code, add tests & find bugs</li>
-									<li class="features-li w-full border border-zinc-700 p-3 rounded-md">Copy or create new files automatically</li>
-									<li class="features-li w-full border border-zinc-700 p-3 rounded-md">Syntax highlighting with auto language detection</li>
-								</ul>
+							<div class="flex flex-col gap-3.5 flex-1" style="align-items: center;">
+					
+								<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="32px" height="32px" style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd" xmlns:xlink="http://www.w3.org/1999/xlink">
+<g><path style="opacity:0.717" fill="#008dd4" d="M 11.5,-0.5 C 14.1667,-0.5 16.8333,-0.5 19.5,-0.5C 23.9301,2.98412 27.9301,6.98412 31.5,11.5C 31.5,12.5 31.5,13.5 31.5,14.5C 31.1667,14.5 30.8333,14.5 30.5,14.5C 29.8333,14.5 29.5,14.1667 29.5,13.5C 30.8333,13.1667 30.8333,12.8333 29.5,12.5C 29.5,11.8333 29.1667,11.5 28.5,11.5C 28.5,10.8333 28.1667,10.5 27.5,10.5C 27.5,9.83333 27.1667,9.5 26.5,9.5C 26.5,8.83333 26.1667,8.5 25.5,8.5C 25.5,7.83333 25.1667,7.5 24.5,7.5C 24.5,6.83333 24.1667,6.5 23.5,6.5C 23.5,5.83333 23.1667,5.5 22.5,5.5C 22.5,4.83333 22.1667,4.5 21.5,4.5C 21.1583,3.66175 20.4916,3.32842 19.5,3.5C 18.0536,2.38705 16.3869,2.22039 14.5,3C 10.6172,6.0983 6.61723,8.93164 2.5,11.5C 2.5,10.8333 2.16667,10.5 1.5,10.5C 1.38929,9.88258 1.05596,9.38258 0.5,9C 4.35904,5.96839 8.02571,2.80173 11.5,-0.5 Z"/></g>
+<g><path style="opacity:0.833" fill="#018cd7" d="M 19.5,3.5 C 19.8417,4.33825 20.5084,4.67158 21.5,4.5C 22.1667,4.5 22.5,4.83333 22.5,5.5C 23.1667,5.5 23.5,5.83333 23.5,6.5C 24.1667,6.5 24.5,6.83333 24.5,7.5C 24.5,7.83333 24.5,8.16667 24.5,8.5C 23.8333,8.5 23.1667,8.5 22.5,8.5C 20.8632,7.78219 19.1966,7.61553 17.5,8C 14.0003,10.6686 10.667,13.502 7.5,16.5C 7.5,15.8333 7.16667,15.5 6.5,15.5C 6.5,14.8333 6.16667,14.5 5.5,14.5C 5.5,13.8333 5.16667,13.5 4.5,13.5C 7.60433,10.8991 10.6043,8.06575 13.5,5C 15.3453,3.87201 17.3453,3.37201 19.5,3.5 Z"/></g>
+<g><path style="opacity:0.984" fill="#8fc73b" d="M 22.5,9.5 C 22.5,9.83333 22.5,10.1667 22.5,10.5C 22.5,11.5 22.5,12.5 22.5,13.5C 18.5421,16.2854 14.7088,19.2854 11,22.5C 10.3292,21.7476 9.4959,21.4142 8.5,21.5C 8.5,20.8333 8.16667,20.5 7.5,20.5C 7.5,20.1667 7.5,19.8333 7.5,19.5C 8.16667,18.8333 8.83333,18.1667 9.5,17.5C 12.2971,15.205 14.9638,12.705 17.5,10C 19.1341,9.50649 20.8008,9.33982 22.5,9.5 Z"/></g>
+<g><path style="opacity:1" fill="#0487e4" d="M 22.5,9.5 C 22.5,9.16667 22.5,8.83333 22.5,8.5C 23.1667,8.5 23.8333,8.5 24.5,8.5C 24.8333,8.5 25.1667,8.5 25.5,8.5C 26.1667,8.5 26.5,8.83333 26.5,9.5C 27.1667,9.5 27.5,9.83333 27.5,10.5C 28.1667,10.5 28.5,10.8333 28.5,11.5C 29.1667,11.5 29.5,11.8333 29.5,12.5C 29.5,12.8333 29.5,13.1667 29.5,13.5C 29.5,14.1667 29.8333,14.5 30.5,14.5C 30.5,15.1667 30.8333,15.5 31.5,15.5C 31.5,16.1667 31.5,16.8333 31.5,17.5C 31.1667,17.5 30.8333,17.5 30.5,17.5C 30.5,16.8333 30.1667,16.5 29.5,16.5C 29.5,15.8333 29.1667,15.5 28.5,15.5C 28.5,14.8333 28.1667,14.5 27.5,14.5C 27.5,13.8333 27.1667,13.5 26.5,13.5C 26.5,12.8333 26.1667,12.5 25.5,12.5C 25.5,11.8333 25.1667,11.5 24.5,11.5C 24.5,10.8333 24.1667,10.5 23.5,10.5C 23.5,9.83333 23.1667,9.5 22.5,9.5 Z"/></g>
+<g><path style="opacity:0.571" fill="#a1ce29" d="M -0.5,10.5 C 0.166667,10.5 0.833333,10.5 1.5,10.5C 2.16667,10.5 2.5,10.8333 2.5,11.5C 2.83333,12.5 3.5,13.1667 4.5,13.5C 5.16667,13.5 5.5,13.8333 5.5,14.5C 6.16667,14.5 6.5,14.8333 6.5,15.5C 7.16667,15.5 7.5,15.8333 7.5,16.5C 7.84171,17.3382 8.50838,17.6716 9.5,17.5C 8.83333,18.1667 8.16667,18.8333 7.5,19.5C 7.16667,19.5 6.83333,19.5 6.5,19.5C 6.5,18.8333 6.16667,18.5 5.5,18.5C 5.5,17.8333 5.16667,17.5 4.5,17.5C 4.5,16.8333 4.16667,16.5 3.5,16.5C 3.5,15.8333 3.16667,15.5 2.5,15.5C 2.5,14.8333 2.16667,14.5 1.5,14.5C 1.5,13.8333 1.16667,13.5 0.5,13.5C 0.5,12.8333 0.166667,12.5 -0.5,12.5C -0.5,11.8333 -0.5,11.1667 -0.5,10.5 Z"/></g>
+<g><path style="opacity:0.701" fill="#008dd5" d="M -0.5,13.5 C -0.166667,13.5 0.166667,13.5 0.5,13.5C 1.16667,13.5 1.5,13.8333 1.5,14.5C 1.5,14.8333 1.5,15.1667 1.5,15.5C 1.5,16.1667 1.5,16.8333 1.5,17.5C 0.166667,17.8333 0.166667,18.1667 1.5,18.5C 1.5,19.1667 1.83333,19.5 2.5,19.5C 2.5,20.1667 2.83333,20.5 3.5,20.5C 3.5,21.1667 3.83333,21.5 4.5,21.5C 4.5,22.1667 4.83333,22.5 5.5,22.5C 5.5,23.1667 5.83333,23.5 6.5,23.5C 6.5,24.1667 6.83333,24.5 7.5,24.5C 7.5,25.1667 7.83333,25.5 8.5,25.5C 8.5,26.1667 8.83333,26.5 9.5,26.5C 9.84171,27.3382 10.5084,27.6716 11.5,27.5C 13.1667,28.8333 14.8333,28.8333 16.5,27.5C 20.772,25.2256 24.772,22.5589 28.5,19.5C 28.5,20.1667 28.8333,20.5 29.5,20.5C 29.8039,21.1499 30.1373,21.8165 30.5,22.5C 27.08,25.9316 23.4133,28.9316 19.5,31.5C 16.8333,31.5 14.1667,31.5 11.5,31.5C 6.5,28.5 2.5,24.5 -0.5,19.5C -0.5,17.5 -0.5,15.5 -0.5,13.5 Z"/></g>
+<g><path style="opacity:0.814" fill="#018cd7" d="M 23.5,14.5 C 23.5,15.1667 23.8333,15.5 24.5,15.5C 24.5,16.1667 24.8333,16.5 25.5,16.5C 25.5,17.1667 25.8333,17.5 26.5,17.5C 23.4729,21.1938 20.1396,24.5271 16.5,27.5C 14.8333,27.5 13.1667,27.5 11.5,27.5C 11.1583,26.6618 10.4916,26.3284 9.5,26.5C 8.83333,26.5 8.5,26.1667 8.5,25.5C 7.83333,25.5 7.5,25.1667 7.5,24.5C 7.5,24.1667 7.5,23.8333 7.5,23.5C 8.16667,23.5 8.83333,23.5 9.5,23.5C 11.6547,23.628 13.6547,23.128 15.5,22C 18.0362,19.295 20.7029,16.795 23.5,14.5 Z"/></g>
+<g><path style="opacity:1" fill="#a1ce29" d="M 22.5,10.5 C 22.8333,10.5 23.1667,10.5 23.5,10.5C 24.1667,10.5 24.5,10.8333 24.5,11.5C 25.1667,11.5 25.5,11.8333 25.5,12.5C 26.1667,12.5 26.5,12.8333 26.5,13.5C 27.1667,13.5 27.5,13.8333 27.5,14.5C 28.1667,14.5 28.5,14.8333 28.5,15.5C 29.1667,15.5 29.5,15.8333 29.5,16.5C 30.1667,16.5 30.5,16.8333 30.5,17.5C 30.5,18.1667 30.8333,18.5 31.5,18.5C 31.5,19.1667 31.5,19.8333 31.5,20.5C 30.8333,20.5 30.1667,20.5 29.5,20.5C 28.8333,20.5 28.5,20.1667 28.5,19.5C 28.1667,18.5 27.5,17.8333 26.5,17.5C 25.8333,17.5 25.5,17.1667 25.5,16.5C 24.8333,16.5 24.5,16.1667 24.5,15.5C 23.8333,15.5 23.5,15.1667 23.5,14.5C 23.5,13.8333 23.1667,13.5 22.5,13.5C 22.5,12.5 22.5,11.5 22.5,10.5 Z"/></g>
+<g><path style="opacity:1" fill="#0389e1" d="M 1.5,15.5 C 1.83333,15.5 2.16667,15.5 2.5,15.5C 3.16667,15.5 3.5,15.8333 3.5,16.5C 4.16667,16.5 4.5,16.8333 4.5,17.5C 5.16667,17.5 5.5,17.8333 5.5,18.5C 6.16667,18.5 6.5,18.8333 6.5,19.5C 6.5,20.1667 6.83333,20.5 7.5,20.5C 8.16667,20.5 8.5,20.8333 8.5,21.5C 8.83333,22.1667 9.16667,22.8333 9.5,23.5C 8.83333,23.5 8.16667,23.5 7.5,23.5C 7.16667,23.5 6.83333,23.5 6.5,23.5C 5.83333,23.5 5.5,23.1667 5.5,22.5C 4.83333,22.5 4.5,22.1667 4.5,21.5C 3.83333,21.5 3.5,21.1667 3.5,20.5C 2.83333,20.5 2.5,20.1667 2.5,19.5C 1.83333,19.5 1.5,19.1667 1.5,18.5C 1.5,18.1667 1.5,17.8333 1.5,17.5C 1.5,16.8333 1.5,16.1667 1.5,15.5 Z"/></g>
+</svg>
+								中国移动编码助手
 							</div>
-						</div>
-						<div class="flex flex-col gap-4 h-full items-center justify-end text-center">
-							<button id="login-button" class="mb-4 btn btn-primary flex gap-2 justify-center p-3 rounded-md">Log in</button>
-							<button id="list-conversations-link" class="hidden mb-4 btn btn-primary flex gap-2 justify-center p-3 rounded-md" title="You can access this feature via the kebab menu below. NOTE: Only available with Browser Auto-login method">
-								<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155" /></svg>&nbsp;Show conversations
-							</button>
-							<p class="max-w-sm text-center text-xs text-slate-500">
-								<a title="" id="settings-button" href="#">Update settings</a>&nbsp; | &nbsp;<a title="" id="settings-prompt-button" href="#">Update prompts</a>
-							</p>
 						</div>
 					</div>
 
@@ -533,7 +602,7 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 					<div class="flex-1 overflow-y-auto hidden" id="conversation-list" data-license="isc-gnc"></div>
 
 					<div id="in-progress" class="pl-4 pt-2 flex items-center hidden" data-license="isc-gnc">
-						<div class="typing">Thinking</div>
+						<div class="typing">思考中，请稍后</div>
 						<div class="spinner">
 							<div class="bounce1"></div>
 							<div class="bounce2"></div>
@@ -541,7 +610,7 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 						</div>
 
 						<button id="stop-button" class="btn btn-primary flex items-end p-1 pr-2 rounded-md ml-5">
-							<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>Stop responding</button>
+							<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>停止</button>
 					</div>
 
 					<div class="p-4 flex items-center pt-2" data-license="isc-gnc">
@@ -550,19 +619,10 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 								type="text"
 								rows="1" data-license="isc-gnc"
 								id="question-input"
-								placeholder="Ask a question..."
+								placeholder="请提问："
 								onInput="this.parentNode.dataset.replicatedValue = this.value"></textarea>
 						</div>
-						<div id="chat-button-wrapper" class="absolute bottom-14 items-center more-menu right-8 border border-gray-200 shadow-xl hidden text-xs" data-license="isc-gnc">
-							<button class="flex gap-2 items-center justify-start p-2 w-full" id="clear-button"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>&nbsp;New chat</button>	
-							<button class="flex gap-2 items-center justify-start p-2 w-full" id="settings-button"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>&nbsp;Update settings</button>
-							<button class="flex gap-2 items-center justify-start p-2 w-full" id="export-button"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>&nbsp;Export to markdown</button>
-						</div>
 						<div id="question-input-buttons" class="right-6 absolute p-0.5 ml-5 flex items-center gap-2">
-							<button id="more-button" title="More actions" class="rounded-lg p-0.5" data-license="isc-gnc">
-								<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 12.75a.75.75 0 110-1.5.75.75 0 010 1.5zM12 18.75a.75.75 0 110-1.5.75.75 0 010 1.5z" /></svg>
-							</button>
-
 							<button id="ask-button" title="Submit prompt" class="ask-button rounded-lg p-0.5">
 								<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" /></svg>
 							</button>

@@ -13,4 +13,5 @@ images/**
 temp/**
 !images/ai-logo.png
 !images/ai-logo-in.png
+!images/favicon.png
 chatgpt-4.7.2
