@@ -181,7 +181,7 @@
       },
       {
         "command": "chinamobile-codehelper.optimize",
-        "title": "ChatGPT: Optimize",
+        "title": "中国移动编码助手：优化代码",
         "enablement": "editorHasSelection"
       },
       {
@@ -325,7 +325,7 @@
         },
         "chinamobile-codehelper.promptPrefix.optimize": {
           "type": "string",
-          "default": "Optimize the following code",
+          "default": "优化以下代码，使其更加简洁，易懂：",
           "description": "The prompt prefix used for optimizing the selected code",
           "order": 12
         },
