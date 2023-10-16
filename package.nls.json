@@ -29,7 +29,7 @@
     "chinamobile-codehelper.promptPrefix.findProblems.default": "Find problems with the following code",
     "chinamobile-codehelper.promptPrefix.findProblems.description": "The prompt prefix used for finding problems for the selected code",
     "chinamobile-codehelper.promptPrefix.findProblems-enabled.description": "Enable the prompt prefix used for finding problems for the selected code in the context menu",
-    "chinamobile-codehelper.promptPrefix.optimize.default": "优化以下代码，使其更加简洁，易懂：",
+    "chinamobile-codehelper.promptPrefix.optimize.default": "优化以下代码，使其更加简洁，易懂，最后展示出优化后的完整代码，并在注释里写明优化的原因：",
     "chinamobile-codehelper.promptPrefix.optimize.description": "The prompt prefix used for optimizing the selected code",
     "chinamobile-codehelper.promptPrefix.optimize-enabled.description": "Enable the prompt prefix used for optimizing the selected code in the context menu",
     "chinamobile-codehelper.promptPrefix.explain.default": "请解释一下以下代码的含义",

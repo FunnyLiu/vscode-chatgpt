@@ -26,7 +26,7 @@
     "chinamobile-codehelper.promptPrefix.findProblems.default": "找出以下代码存在问题：",
     "chinamobile-codehelper.promptPrefix.findProblems.description": "允许您选中代码后，让 GPT 针对此代码查找问题的快速 Prompt 前缀",
     "chinamobile-codehelper.promptPrefix.findProblems-enabled.description": "选中代码后，是否在上下文菜单选项显示[查找问题]",
-    "chinamobile-codehelper.promptPrefix.optimize.default": "优化以下代码，使代码更简洁，容易理解：",
+    "chinamobile-codehelper.promptPrefix.optimize.default": "优化以下代码，使代码更简洁，容易理解，最后展示出优化后的完整代码，并在注释里写明优化的原因：",
     "chinamobile-codehelper.promptPrefix.optimize.description": "允许您选中代码后，让 GPT 针对此代码进行优化的快速 Prompt 前缀。",
     "chinamobile-codehelper.promptPrefix.optimize-enabled.description": "选中代码后，是否在上下文菜单选项显示[优化代码]",
     "chinamobile-codehelper.promptPrefix.explain.default": "解释以下代码作用：",

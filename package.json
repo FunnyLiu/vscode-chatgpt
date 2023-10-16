@@ -176,7 +176,7 @@
       },
       {
         "command": "chinamobile-codehelper.findProblems",
-        "title": "ChatGPT: Find bugs",
+        "title": "中国移动编码助手：排查问题",
         "enablement": "editorHasSelection"
       },
       {
@@ -313,7 +313,7 @@
         },
         "chinamobile-codehelper.promptPrefix.findProblems": {
           "type": "string",
-          "default": "Find problems with the following code",
+          "default": "找出以下代码存在问题，并提供修改建议：",
           "description": "The prompt prefix used for finding problems for the selected code",
           "order": 10
         },
@@ -325,7 +325,7 @@
         },
         "chinamobile-codehelper.promptPrefix.optimize": {
           "type": "string",
-          "default": "优化以下代码，使其更加简洁，易懂：",
+          "default": "优化以下代码，使其更加简洁，易懂，最后展示出优化后的完整代码，并在注释里写明优化的原因：",
           "description": "The prompt prefix used for optimizing the selected code",
           "order": 12
         },
