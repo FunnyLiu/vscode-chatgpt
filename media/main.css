@@ -236,7 +236,7 @@ textarea::placeholder {
 
 .textarea-wrapper {
     display: grid;
-    max-height: 20rem;
+    max-height: 4rem;
     font-size: var(--vscode-font-size);
 }
 
@@ -249,7 +249,7 @@ textarea::placeholder {
 .textarea-wrapper>textarea {
     resize: none;
     overflow: hidden auto;
-    max-height: 20rem;
+    max-height: 4rem;
 }
 
 .textarea-wrapper>textarea,

@@ -36,6 +36,7 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 	private apiGpt3?: ChatGPTAPI3;
 	private apiGpt35?: ChatGPTAPI35;
 	private conversationId?: string;
+	private conversations: any[] = [];
 	private messageId?: string;
 	private proxyServer?: string;
 	private loginMethod?: LoginMethod;
@@ -106,7 +107,7 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 				case 'clearConversation':
 					this.messageId = undefined;
 					this.conversationId = undefined;
-
+					this.conversations = [];
 					this.logEvent("conversation-cleared");
 					break;
 				case 'clearBrowser':
@@ -466,6 +467,7 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 			.then(response => response.json())
 			.then(data => data.access_token);
 	}
+	// 文心一言API
 	public async sendApiRequestToYiYan(prompt: string, options: { command: string, code?: string, previousAnswer?: string, language?: string; }) {
 		if (this.inProgress) {
 			// The AI is still thinking... Do not accept more questions.
@@ -497,32 +499,55 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 		this.currentMessageId = this.getRandomId();
 
 		this.sendMessage({ type: 'addQuestion', value: prompt, code: options.code, autoScroll: this.autoScroll });
-
-		const accessToken = await this.getAccessToken();
-		const options2 = {
-			method: 'POST',
-			headers: {
-				// eslint-disable-next-line @typescript-eslint/naming-convention
-				'Content-Type': 'application/json'
-			},
-			body: JSON.stringify({
-				messages: [
-					{
-						role: "user",
-						content: prompt
-					}
-				]
-			}),
-			signal: this.abortController.signal // 将 signal 传递给 fetch 请求的选项中
+		const message = {
+			role: "user",
+			content: prompt
 		};
+		this.conversations.push(message);
+		try {
+			const accessToken = await this.getAccessToken();
+			const options2 = {
+				method: 'POST',
+				headers: {
+					// eslint-disable-next-line @typescript-eslint/naming-convention
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					messages: this.conversations,
+					system: '你是中国移动公司自主研发的AI助手'
+				}),
+				signal: this.abortController.signal // 将 signal 传递给 fetch 请求的选项中
+			};
 
-		const response = await fetch(`https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/completions?access_token=${accessToken}`, options2);
-		const data = await response.json();
-		console.log('yiyan');
-		// console.log(data);
-		this.sendMessage({ type: 'addResponse', value: data.result, done: true, id: this.currentMessageId, autoScroll: this.autoScroll, responseInMarkdown });
-		this.inProgress = false;
-		this.sendMessage({ type: 'showInProgress', inProgress: this.inProgress });
+			const response = await fetch(`https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/completions?access_token=${accessToken}`, options2);
+			const data = await response.json();
+			console.log('yiyan');
+			console.log(data);
+			if (data.error_code == 336007) {
+				throw new Error('超出最大长度限制');
+			}
+			this.conversations.push({
+				role: "assistant",
+				content: data.result
+			});
+			this.sendMessage({ type: 'addResponse', value: data.result, done: true, id: this.currentMessageId, autoScroll: this.autoScroll, responseInMarkdown });
+			// this.inProgress = false;
+			// this.sendMessage({ type: 'showInProgress', inProgress: this.inProgress });
+			// 超过5轮对话就强制置空
+			if (this.conversations.length >= 10) {
+				this.conversations = [];
+				this.sendMessage({ type: 'addResponse', value: '超出一轮对话聊天轮数，请重新开始对话', done: true, id: this.currentMessageId, autoScroll: this.autoScroll, responseInMarkdown });
+			}
+		} catch (error: any) {
+			console.log('error');
+			console.log(error);
+			this.conversations = [];
+			this.sendMessage({ type: 'addResponse', value: '出现异常，请检查是否超出长度限制或联系管理员', done: true, id: this.currentMessageId, autoScroll: this.autoScroll, responseInMarkdown });
+			// this.inProgress = false;
+		} finally {
+			this.inProgress = false;
+			this.sendMessage({ type: 'showInProgress', inProgress: this.inProgress });
+		}
 	}
 
 
@@ -610,7 +635,8 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 						</div>
 
 						<button id="stop-button" class="btn btn-primary flex items-end p-1 pr-2 rounded-md ml-5">
-							<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>停止</button>
+							<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>停止
+						</button>
 					</div>
 
 					<div class="p-4 flex items-center pt-2" data-license="isc-gnc">
@@ -623,6 +649,9 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 								onInput="this.parentNode.dataset.replicatedValue = this.value"></textarea>
 						</div>
 						<div id="question-input-buttons" class="right-6 absolute p-0.5 ml-5 flex items-center gap-2">
+							<button id="clear-button" title="Submit prompt" class="ask-button rounded-lg p-0.5">
+     						    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" data-license="isc-gnc" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
+							</button>
 							<button id="ask-button" title="Submit prompt" class="ask-button rounded-lg p-0.5">
 								<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" /></svg>
 							</button>
