@@ -87,7 +87,8 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 			switch (data.type) {
 				case 'addFreeTextQuestion':
 					// this.sendApiRequest(data.value, { command: "freeText" });
-					this.sendApiRequestToYiYan(data.value, { command: "freeText" });
+					// this.sendApiRequestToYiYan(data.value, { command: "freeText" });
+					this.sendApiRequestToSelfGLM2(data.value, { command: "freeText" });
 					break;
 				case 'editCode':
 					const escapedString = (data.value as string).replace(/\$/g, '\\$');;
@@ -550,6 +551,81 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 		}
 	}
 
+	// 私有chatglm2的API
+	public async sendApiRequestToSelfGLM2(prompt: string, options: { command: string, code?: string, previousAnswer?: string, language?: string; }) {
+		if (this.inProgress) {
+			// The AI is still thinking... Do not accept more questions.
+			return;
+		}
+
+		this.questionCounter++;
+
+		// this.logEvent("api-request-sent", { "chinamobile-codehelper.command": options.command, "chinamobile-codehelper.hasCode": String(!!options.code), "chinamobile-codehelper.hasPreviousAnswer": String(!!options.previousAnswer) });
+
+		// if (!await this.prepareConversation()) {
+		// 	return;
+		// }
+
+		this.response = '';
+		const responseInMarkdown = !this.isCodexModel;
+
+		// If the ChatGPT view is not in focus/visible; focus on it to render Q&A
+		if (this.webView == null) {
+			vscode.commands.executeCommand('chinamobile-codehelper.view.focus');
+		} else {
+			this.webView?.show?.(true);
+		}
+
+		this.inProgress = true;
+		this.abortController = new AbortController();
+		this.sendMessage({ type: 'showInProgress', inProgress: this.inProgress, showStopButton: this.useGpt3 });
+		this.currentMessageId = this.getRandomId();
+
+		this.sendMessage({ type: 'addQuestion', value: prompt, code: options.code, autoScroll: this.autoScroll });
+		try {
+			// const accessToken = await this.getAccessToken();
+			console.log('conversations');
+			console.log(this.conversations);
+			const options2 = {
+				method: 'POST',
+				headers: {
+					// eslint-disable-next-line @typescript-eslint/naming-convention
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					prompt: prompt,
+					history: this.conversations
+				}),
+				signal: this.abortController.signal // 将 signal 传递给 fetch 请求的选项中
+			};
+			// this.conversations.push(prompt);
+			const response = await fetch(`http://47.100.220.105:32002`, options2);
+			const data = await response.json();
+			console.log('selfchatglm2');
+			console.log(data);
+			if (data.error_code == 336007) {
+				throw new Error('超出最大长度限制');
+			}
+			this.conversations = (data.history);
+			this.sendMessage({ type: 'addResponse', value: data.response, done: true, id: this.currentMessageId, autoScroll: this.autoScroll, responseInMarkdown });
+			// this.inProgress = false;
+			// this.sendMessage({ type: 'showInProgress', inProgress: this.inProgress });
+			// 超过5轮对话就强制置空
+			if (this.conversations.length >= 10) {
+				this.conversations = [];
+				this.sendMessage({ type: 'addResponse', value: '超出一轮对话聊天轮数，请重新开始对话', done: true, id: this.currentMessageId, autoScroll: this.autoScroll, responseInMarkdown });
+			}
+		} catch (error: any) {
+			console.log('error');
+			console.log(error);
+			this.conversations = [];
+			this.sendMessage({ type: 'addResponse', value: '出现异常，请检查是否超出长度限制或联系管理员', done: true, id: this.currentMessageId, autoScroll: this.autoScroll, responseInMarkdown });
+			// this.inProgress = false;
+		} finally {
+			this.inProgress = false;
+			this.sendMessage({ type: 'showInProgress', inProgress: this.inProgress });
+		}
+	}
 
 	/**
 	 * Message sender, stores if a message cannot be delivered

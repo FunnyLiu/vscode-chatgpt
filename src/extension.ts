@@ -173,7 +173,8 @@ export async function activate(context: vscode.ExtensionContext) {
 		const selection = editor.document.getText(editor.selection);
 		if (selection && prompt) {
 			// provider?.sendApiRequest(prompt, { command, code: selection, language: editor.document.languageId });
-			provider?.sendApiRequestToYiYan(prompt + selection, { command });
+			// provider?.sendApiRequestToYiYan(prompt + selection, { command });
+			provider?.sendApiRequestToSelfGLM2(prompt + selection, { command });
 		}
 	}));
 
