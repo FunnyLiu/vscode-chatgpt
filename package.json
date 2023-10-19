@@ -244,6 +244,34 @@
     "configuration": {
       "title": "中国移动编码助手",
       "properties": {
+        "chinamobile-codehelper.promptPrefix.aiType": {
+          "type": "string",
+          "default": "glm2",
+          "enum": [
+            "glm2",
+            "yiyan"
+          ],
+          "description": "",
+          "enumDescriptions": [
+            "chatglm2私有大模型",
+            "文心一言公有服务，依赖token"
+          ]
+        },
+        "chinamobile-codehelper.promptPrefix.glm2ApiServer": {
+          "type": "string",
+          "default": "http://47.100.220.105:32002",
+          "description": "glm2的服务接口地址"
+        },
+        "chinamobile-codehelper.promptPrefix.yiyanAK": {
+          "type": "string",
+          "default": "",
+          "description": "百度yiyan的AK"
+        },
+        "chinamobile-codehelper.promptPrefix.yiyanSK": {
+          "type": "string",
+          "default": "",
+          "description": "百度yiyan的SK"
+        },
         "chinamobile-codehelper.promptPrefix.findProblems": {
           "type": "string",
           "default": "找出以下代码存在问题，并提供修改建议：",

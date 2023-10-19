@@ -165,7 +165,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	const registeredCommands = menuCommands.filter(command => command !== "adhoc" && command !== "generateCode").map((command) => vscode.commands.registerCommand(`chinamobile-codehelper.${command}`, () => {
 		const prompt = vscode.workspace.getConfiguration("chinamobile-codehelper").get<string>(`promptPrefix.${command}`);
 		const editor = vscode.window.activeTextEditor;
-
+		const aiType = vscode.workspace.getConfiguration("chinamobile-codehelper").get<string>("promptPrefix.aiType");
 		if (!editor) {
 			return;
 		}
@@ -174,7 +174,12 @@ export async function activate(context: vscode.ExtensionContext) {
 		if (selection && prompt) {
 			// provider?.sendApiRequest(prompt, { command, code: selection, language: editor.document.languageId });
 			// provider?.sendApiRequestToYiYan(prompt + selection, { command });
-			provider?.sendApiRequestToSelfGLM2(prompt + selection, { command });
+			if (aiType == 'glm2') {
+				provider?.sendApiRequestToSelfGLM2(prompt + selection, { command });
+			} else if (aiType == 'yiyan') {
+				provider?.sendApiRequestToYiYan(prompt + selection, { command });
+			}
+			// provider?.sendApiRequestToSelfGLM2(prompt + selection, { command });
 		}
 	}));
 

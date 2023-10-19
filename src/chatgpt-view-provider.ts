@@ -32,6 +32,10 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 	public chromiumPath?: string;
 	public profilePath?: string;
 	public model?: string;
+	public aiType: string;
+	public glm2ApiServer: string;
+	public yiyanAK: string;
+	public yiyanSK: string;
 
 	private apiGpt3?: ChatGPTAPI3;
 	private apiGpt35?: ChatGPTAPI35;
@@ -57,6 +61,10 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 		this.subscribeToResponse = vscode.workspace.getConfiguration("chinamobile-codehelper").get("response.showNotification") || false;
 		this.autoScroll = !!vscode.workspace.getConfiguration("chinamobile-codehelper").get("response.autoScroll");
 		this.model = vscode.workspace.getConfiguration("chinamobile-codehelper").get("gpt3.model") as string;
+		this.aiType = vscode.workspace.getConfiguration("chinamobile-codehelper").get("promptPrefix.aiType") || 'glm2';
+		this.glm2ApiServer = vscode.workspace.getConfiguration("chinamobile-codehelper").get("promptPrefix.glm2ApiServer") || "http://47.100.220.105:32002";
+		this.yiyanAK = vscode.workspace.getConfiguration("chinamobile-codehelper").get("promptPrefix.yiyanAK") || "";
+		this.yiyanSK = vscode.workspace.getConfiguration("chinamobile-codehelper").get("promptPrefix.yiyanSK") || "";
 
 		this.setMethod();
 		this.setChromeExecutablePath();
@@ -86,9 +94,16 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 		webviewView.webview.onDidReceiveMessage(async data => {
 			switch (data.type) {
 				case 'addFreeTextQuestion':
+					console.log('this.aiType');
+					console.log(this.aiType);
 					// this.sendApiRequest(data.value, { command: "freeText" });
+					if (this.aiType == 'glm2') {
+						this.sendApiRequestToSelfGLM2(data.value, { command: "freeText" });
+					} else if (this.aiType == 'yiyan') {
+						this.sendApiRequestToYiYan(data.value, { command: "freeText" });
+					}
 					// this.sendApiRequestToYiYan(data.value, { command: "freeText" });
-					this.sendApiRequestToSelfGLM2(data.value, { command: "freeText" });
+					// this.sendApiRequestToSelfGLM2(data.value, { command: "freeText" });
 					break;
 				case 'editCode':
 					const escapedString = (data.value as string).replace(/\$/g, '\\$');;
@@ -458,8 +473,8 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
  * @return string 鉴权签名信息（Access Token）
  */
 	public async getAccessToken() {
-		const AK = "U3tt7fLHrXDslMxc8n3qLwM9";
-		const SK = "KjGfm5ygcYLqTH303RGfG5ZN2SBbwBaB";
+		const AK = this.yiyanAK;
+		const SK = this.yiyanSK;
 		const options = {
 			method: 'POST',
 		};
@@ -582,6 +597,12 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 		this.currentMessageId = this.getRandomId();
 
 		this.sendMessage({ type: 'addQuestion', value: prompt, code: options.code, autoScroll: this.autoScroll });
+		if (prompt.length > 4000) {
+			this.sendMessage({ type: 'addResponse', value: '内容太长，请精简后再对话', done: true, id: this.currentMessageId, autoScroll: this.autoScroll, responseInMarkdown });
+			this.inProgress = false;
+			this.sendMessage({ type: 'showInProgress', inProgress: this.inProgress });
+			return;
+		}
 		try {
 			// const accessToken = await this.getAccessToken();
 			console.log('conversations');
@@ -599,11 +620,11 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 				signal: this.abortController.signal // 将 signal 传递给 fetch 请求的选项中
 			};
 			// this.conversations.push(prompt);
-			const response = await fetch(`http://47.100.220.105:32002`, options2);
+			const response = await fetch(this.glm2ApiServer, options2);
 			const data = await response.json();
 			console.log('selfchatglm2');
 			console.log(data);
-			if (data.error_code == 336007) {
+			if (data.response == 'This') {
 				throw new Error('超出最大长度限制');
 			}
 			this.conversations = (data.history);
@@ -611,7 +632,7 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 			// this.inProgress = false;
 			// this.sendMessage({ type: 'showInProgress', inProgress: this.inProgress });
 			// 超过5轮对话就强制置空
-			if (this.conversations.length >= 10) {
+			if (this.conversations.length >= 5) {
 				this.conversations = [];
 				this.sendMessage({ type: 'addResponse', value: '超出一轮对话聊天轮数，请重新开始对话', done: true, id: this.currentMessageId, autoScroll: this.autoScroll, responseInMarkdown });
 			}
