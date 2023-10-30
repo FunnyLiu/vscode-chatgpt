@@ -176,6 +176,8 @@ export async function activate(context: vscode.ExtensionContext) {
 			// provider?.sendApiRequestToYiYan(prompt + selection, { command });
 			if (aiType == 'glm2') {
 				provider?.sendApiRequestToSelfGLM2(prompt + selection, { command });
+			} else if (aiType == 'glm3') {
+				provider?.sendApiRequestToSelfGLM3(prompt + selection, { command });
 			} else if (aiType == 'yiyan') {
 				provider?.sendApiRequestToYiYan(prompt + selection, { command });
 			}

@@ -249,11 +249,13 @@
           "default": "glm2",
           "enum": [
             "glm2",
+            "glm3",
             "yiyan"
           ],
           "description": "",
           "enumDescriptions": [
             "chatglm2私有大模型",
+            "chatglm3私有大模型",
             "文心一言公有服务，依赖token"
           ]
         },
@@ -261,6 +263,11 @@
           "type": "string",
           "default": "http://47.100.220.105:32002",
           "description": "glm2的服务接口地址"
+        },
+        "chinamobile-codehelper.promptPrefix.glm3ApiServer": {
+          "type": "string",
+          "default": "http://47.100.220.105:32002",
+          "description": "glm3的服务接口地址"
         },
         "chinamobile-codehelper.promptPrefix.yiyanAK": {
           "type": "string",

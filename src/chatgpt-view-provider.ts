@@ -34,6 +34,7 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 	public model?: string;
 	public aiType: string;
 	public glm2ApiServer: string;
+	public glm3ApiServer: string;
 	public yiyanAK: string;
 	public yiyanSK: string;
 
@@ -63,6 +64,7 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 		this.model = vscode.workspace.getConfiguration("chinamobile-codehelper").get("gpt3.model") as string;
 		this.aiType = vscode.workspace.getConfiguration("chinamobile-codehelper").get("promptPrefix.aiType") || 'glm2';
 		this.glm2ApiServer = vscode.workspace.getConfiguration("chinamobile-codehelper").get("promptPrefix.glm2ApiServer") || "http://47.100.220.105:32002";
+		this.glm3ApiServer = vscode.workspace.getConfiguration("chinamobile-codehelper").get("promptPrefix.glm3ApiServer") || "http://47.100.220.105:32002";
 		this.yiyanAK = vscode.workspace.getConfiguration("chinamobile-codehelper").get("promptPrefix.yiyanAK") || "";
 		this.yiyanSK = vscode.workspace.getConfiguration("chinamobile-codehelper").get("promptPrefix.yiyanSK") || "";
 
@@ -99,6 +101,8 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 					// this.sendApiRequest(data.value, { command: "freeText" });
 					if (this.aiType == 'glm2') {
 						this.sendApiRequestToSelfGLM2(data.value, { command: "freeText" });
+					} else if (this.aiType == 'glm3') {
+						this.sendApiRequestToSelfGLM3(data.value, { command: "freeText" });
 					} else if (this.aiType == 'yiyan') {
 						this.sendApiRequestToYiYan(data.value, { command: "freeText" });
 					}
@@ -620,6 +624,9 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 				signal: this.abortController.signal // 将 signal 传递给 fetch 请求的选项中
 			};
 			// this.conversations.push(prompt);
+			console.log('fecthinfo');
+			console.log(this.glm2ApiServer);
+			console.log(options2);
 			const response = await fetch(this.glm2ApiServer, options2);
 			const data = await response.json();
 			console.log('selfchatglm2');
@@ -633,6 +640,111 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 			// this.sendMessage({ type: 'showInProgress', inProgress: this.inProgress });
 			// 超过5轮对话就强制置空
 			if (this.conversations.length >= 5) {
+				this.conversations = [];
+				this.sendMessage({ type: 'addResponse', value: '超出一轮对话聊天轮数，请重新开始对话', done: true, id: this.currentMessageId, autoScroll: this.autoScroll, responseInMarkdown });
+			}
+		} catch (error: any) {
+			console.log('error');
+			console.log(error);
+			this.conversations = [];
+			this.sendMessage({ type: 'addResponse', value: '出现异常，请检查是否超出长度限制或联系管理员', done: true, id: this.currentMessageId, autoScroll: this.autoScroll, responseInMarkdown });
+			// this.inProgress = false;
+		} finally {
+			this.inProgress = false;
+			this.sendMessage({ type: 'showInProgress', inProgress: this.inProgress });
+		}
+	}
+	// 私有chatglm2的API
+	public async sendApiRequestToSelfGLM3(prompt: string, options: { command: string, code?: string, previousAnswer?: string, language?: string; }) {
+		if (this.inProgress) {
+			// The AI is still thinking... Do not accept more questions.
+			return;
+		}
+
+		this.questionCounter++;
+
+		// this.logEvent("api-request-sent", { "chinamobile-codehelper.command": options.command, "chinamobile-codehelper.hasCode": String(!!options.code), "chinamobile-codehelper.hasPreviousAnswer": String(!!options.previousAnswer) });
+
+		// if (!await this.prepareConversation()) {
+		// 	return;
+		// }
+
+		this.response = '';
+		const responseInMarkdown = !this.isCodexModel;
+
+		// If the ChatGPT view is not in focus/visible; focus on it to render Q&A
+		if (this.webView == null) {
+			vscode.commands.executeCommand('chinamobile-codehelper.view.focus');
+		} else {
+			this.webView?.show?.(true);
+		}
+
+		this.inProgress = true;
+		this.abortController = new AbortController();
+		this.sendMessage({ type: 'showInProgress', inProgress: this.inProgress, showStopButton: this.useGpt3 });
+		this.currentMessageId = this.getRandomId();
+
+		this.sendMessage({ type: 'addQuestion', value: prompt, code: options.code, autoScroll: this.autoScroll });
+		if (prompt.length > 4000) {
+			this.sendMessage({ type: 'addResponse', value: '内容太长，请精简后再对话', done: true, id: this.currentMessageId, autoScroll: this.autoScroll, responseInMarkdown });
+			this.inProgress = false;
+			this.sendMessage({ type: 'showInProgress', inProgress: this.inProgress });
+			return;
+		}
+		const message = {
+			"role": "user",
+			"content": prompt,
+			"metadata": "string",
+			"tools": [
+				{}
+			]
+		};
+		this.conversations.push(message);
+		try {
+			// const accessToken = await this.getAccessToken();
+			console.log('conversations');
+			console.log(this.conversations);
+			const options2 = {
+				method: 'POST',
+				headers: {
+					// eslint-disable-next-line @typescript-eslint/naming-convention
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					"model": "string",
+					"messages": this.conversations,
+					"temperature": 0.7,
+					"top_p": 1,
+					"max_tokens": 0,
+					"stop": [
+						"string"
+					],
+					"stream": false,
+					"stop_token_ids": [
+						0
+					],
+					"repetition_penalty": 1.1,
+					"return_function_call": false
+				}),
+				signal: this.abortController.signal // 将 signal 传递给 fetch 请求的选项中
+			};
+			// this.conversations.push(prompt);
+			console.log('fecthinfo');
+			console.log(this.glm3ApiServer);
+			console.log(options2);
+			const response = await fetch(`${this.glm3ApiServer}/v1/chat/completions`, options2);
+			const data = await response.json();
+			console.log('selfchatglm3');
+			console.log(data);
+			if (data.choices.length === 0) {
+				throw new Error('返回异常');
+			}
+			this.conversations.push(data.choices[0].message);
+			this.sendMessage({ type: 'addResponse', value: data.choices[0].message.content, done: true, id: this.currentMessageId, autoScroll: this.autoScroll, responseInMarkdown });
+			// this.inProgress = false;
+			// this.sendMessage({ type: 'showInProgress', inProgress: this.inProgress });
+			// 超过5轮对话就强制置空
+			if (this.conversations.length >= 10) {
 				this.conversations = [];
 				this.sendMessage({ type: 'addResponse', value: '超出一轮对话聊天轮数，请重新开始对话', done: true, id: this.currentMessageId, autoScroll: this.autoScroll, responseInMarkdown });
 			}
