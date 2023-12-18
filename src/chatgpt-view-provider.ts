@@ -37,6 +37,8 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 	public glm3ApiServer: string;
 	public yiyanAK: string;
 	public yiyanSK: string;
+	public azureSK: string;
+	public azureUrl: string;
 
 	private apiGpt3?: ChatGPTAPI3;
 	private apiGpt35?: ChatGPTAPI35;
@@ -64,9 +66,11 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 		this.model = vscode.workspace.getConfiguration("chinamobile-codehelper").get("gpt3.model") as string;
 		this.aiType = vscode.workspace.getConfiguration("chinamobile-codehelper").get("promptPrefix.aiType") || 'glm2';
 		this.glm2ApiServer = vscode.workspace.getConfiguration("chinamobile-codehelper").get("promptPrefix.glm2ApiServer") || "http://47.100.220.105:32002";
-		this.glm3ApiServer = vscode.workspace.getConfiguration("chinamobile-codehelper").get("promptPrefix.glm3ApiServer") || "http://47.100.220.105:32002";
+		this.glm3ApiServer = vscode.workspace.getConfiguration("chinamobile-codehelper").get("promptPrefix.glm3ApiServer") || "http://10.73.10.3:13004";
 		this.yiyanAK = vscode.workspace.getConfiguration("chinamobile-codehelper").get("promptPrefix.yiyanAK") || "";
 		this.yiyanSK = vscode.workspace.getConfiguration("chinamobile-codehelper").get("promptPrefix.yiyanSK") || "";
+		this.azureSK = vscode.workspace.getConfiguration("chinamobile-codehelper").get("promptPrefix.azureSK") || "";
+		this.azureUrl = vscode.workspace.getConfiguration("chinamobile-codehelper").get("promptPrefix.azureUrl") || "";
 
 		this.setMethod();
 		this.setChromeExecutablePath();
@@ -103,8 +107,10 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 						this.sendApiRequestToSelfGLM2(data.value, { command: "freeText" });
 					} else if (this.aiType == 'glm3') {
 						this.sendApiRequestToSelfGLM3(data.value, { command: "freeText" });
-					} else if (this.aiType == 'yiyan') {
-						this.sendApiRequestToYiYan(data.value, { command: "freeText" });
+					} else if (this.aiType == 'yiyan' || this.aiType == 'yiyanpro') {
+						this.sendApiRequestToYiYan(data.value, { command: "freeText", aiType: this.aiType });
+					} else if (this.aiType == 'azure') {
+						this.sendApiRequestToAzure(data.value, { command: "freeText" });
 					}
 					// this.sendApiRequestToYiYan(data.value, { command: "freeText" });
 					// this.sendApiRequestToSelfGLM2(data.value, { command: "freeText" });
@@ -472,6 +478,100 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 		}
 	}
 
+
+	public async sendApiRequestToAzure(prompt: string, options: { command: string, code?: string, previousAnswer?: string, language?: string; }) {
+		const SK = this.azureSK;
+		const azureUri = this.azureUrl;
+		if (this.inProgress) {
+			// The AI is still thinking... Do not accept more questions.
+			return;
+		}
+
+		this.questionCounter++;
+
+		// this.logEvent("api-request-sent", { "chinamobile-codehelper.command": options.command, "chinamobile-codehelper.hasCode": String(!!options.code), "chinamobile-codehelper.hasPreviousAnswer": String(!!options.previousAnswer) });
+
+		// if (!await this.prepareConversation()) {
+		// 	return;
+		// }
+
+		this.response = '';
+		const responseInMarkdown = !this.isCodexModel;
+
+		// If the ChatGPT view is not in focus/visible; focus on it to render Q&A
+		if (this.webView == null) {
+			vscode.commands.executeCommand('chinamobile-codehelper.view.focus');
+		} else {
+			this.webView?.show?.(true);
+		}
+
+		this.inProgress = true;
+		this.abortController = new AbortController();
+		this.sendMessage({ type: 'showInProgress', inProgress: this.inProgress, showStopButton: this.useGpt3 });
+		this.currentMessageId = this.getRandomId();
+
+		this.sendMessage({ type: 'addQuestion', value: prompt, code: options.code, autoScroll: this.autoScroll });
+		if (prompt.length > 6000) {
+			this.sendMessage({ type: 'addResponse', value: '内容太长，请精简后再对话', done: true, id: this.currentMessageId, autoScroll: this.autoScroll, responseInMarkdown });
+			this.inProgress = false;
+			this.sendMessage({ type: 'showInProgress', inProgress: this.inProgress });
+			return;
+		}
+		const message = {
+			"role": "user",
+			"content": prompt
+		};
+		this.conversations.push(message);
+		try {
+			// const accessToken = await this.getAccessToken();
+			console.log('conversations');
+			console.log(this.conversations);
+			const options2 = {
+				method: 'POST',
+				headers: {
+					// eslint-disable-next-line @typescript-eslint/naming-convention
+					'Content-Type': 'application/json',
+					'api-key': this.azureSK
+				},
+				body: JSON.stringify({
+					"messages": this.conversations,
+					"stream": false,
+					"temperature": 0.7,
+					"max_tokens": 800,
+					"top_p": 1
+				}),
+				signal: this.abortController.signal // 将 signal 传递给 fetch 请求的选项中
+			};
+			// this.conversations.push(prompt);
+			console.log('fecthinfo');
+			console.log(this.azureUrl);
+			console.log(options2);
+			const response = await fetch(this.azureUrl, options2);
+			const data = await response.json();
+			console.log(data);
+			if (data.choices.length === 0) {
+				throw new Error('返回异常');
+			}
+			this.conversations.push(data.choices[0].message);
+			this.sendMessage({ type: 'addResponse', value: data.choices[0].message.content, done: true, id: this.currentMessageId, autoScroll: this.autoScroll, responseInMarkdown });
+			// this.inProgress = false;
+			// this.sendMessage({ type: 'showInProgress', inProgress: this.inProgress });
+			// 超过5轮对话就强制置空
+			if (this.conversations.length >= 10) {
+				this.conversations = [];
+				this.sendMessage({ type: 'addResponse', value: '超出一轮对话聊天轮数，请重新开始对话', done: true, id: this.currentMessageId, autoScroll: this.autoScroll, responseInMarkdown });
+			}
+		} catch (error: any) {
+			console.log('error');
+			console.log(error);
+			this.conversations = [];
+			this.sendMessage({ type: 'addResponse', value: '出现异常，请检查是否超出长度限制或联系管理员', done: true, id: this.currentMessageId, autoScroll: this.autoScroll, responseInMarkdown });
+			// this.inProgress = false;
+		} finally {
+			this.inProgress = false;
+			this.sendMessage({ type: 'showInProgress', inProgress: this.inProgress });
+		}
+	}
 	/**
  * 使用 AK，SK 生成鉴权签名（Access Token）
  * @return string 鉴权签名信息（Access Token）
@@ -488,7 +588,7 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 			.then(data => data.access_token);
 	}
 	// 文心一言API
-	public async sendApiRequestToYiYan(prompt: string, options: { command: string, code?: string, previousAnswer?: string, language?: string; }) {
+	public async sendApiRequestToYiYan(prompt: string, options: { command: string, code?: string, previousAnswer?: string, language?: string; aiType?: string; }) {
 		if (this.inProgress) {
 			// The AI is still thinking... Do not accept more questions.
 			return;
@@ -538,8 +638,11 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 				}),
 				signal: this.abortController.signal // 将 signal 传递给 fetch 请求的选项中
 			};
-
-			const response = await fetch(`https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/completions?access_token=${accessToken}`, options2);
+			let requestStr = 'completions';
+			if (options.aiType == 'yiyanpro') {
+				requestStr = 'completions_pro';
+			}
+			const response = await fetch(`https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/${requestStr}?access_token=${accessToken}`, options2);
 			const data = await response.json();
 			console.log('yiyan');
 			console.log(data);
@@ -685,7 +788,7 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 		this.currentMessageId = this.getRandomId();
 
 		this.sendMessage({ type: 'addQuestion', value: prompt, code: options.code, autoScroll: this.autoScroll });
-		if (prompt.length > 4000) {
+		if (prompt.length > 6000) {
 			this.sendMessage({ type: 'addResponse', value: '内容太长，请精简后再对话', done: true, id: this.currentMessageId, autoScroll: this.autoScroll, responseInMarkdown });
 			this.inProgress = false;
 			this.sendMessage({ type: 'showInProgress', inProgress: this.inProgress });

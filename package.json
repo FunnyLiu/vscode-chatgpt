@@ -246,17 +246,21 @@
       "properties": {
         "chinamobile-codehelper.promptPrefix.aiType": {
           "type": "string",
-          "default": "glm2",
+          "default": "glm3",
           "enum": [
             "glm2",
             "glm3",
-            "yiyan"
+            "yiyan",
+            "yiyanpro",
+            "azure"
           ],
           "description": "",
           "enumDescriptions": [
             "chatglm2私有大模型",
             "chatglm3私有大模型",
-            "文心一言公有服务，依赖token"
+            "文心一言公有服务，依赖token",
+            "文心一言4.0公有服务，更强，依赖token",
+            "Azure的openAI，依赖token"
           ]
         },
         "chinamobile-codehelper.promptPrefix.glm2ApiServer": {
@@ -278,6 +282,16 @@
           "type": "string",
           "default": "",
           "description": "百度yiyan的SK"
+        },
+        "chinamobile-codehelper.promptPrefix.azureUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Azure的请求URL"
+        },
+        "chinamobile-codehelper.promptPrefix.azureSK": {
+          "type": "string",
+          "default": "",
+          "description": "Azure的请求密钥"
         },
         "chinamobile-codehelper.promptPrefix.findProblems": {
           "type": "string",

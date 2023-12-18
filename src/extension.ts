@@ -178,8 +178,10 @@ export async function activate(context: vscode.ExtensionContext) {
 				provider?.sendApiRequestToSelfGLM2(prompt + selection, { command });
 			} else if (aiType == 'glm3') {
 				provider?.sendApiRequestToSelfGLM3(prompt + selection, { command });
-			} else if (aiType == 'yiyan') {
-				provider?.sendApiRequestToYiYan(prompt + selection, { command });
+			} else if (aiType == 'yiyan' || aiType == 'yiyanpro') {
+				provider?.sendApiRequestToYiYan(prompt + selection, { command, aiType });
+			} else if (aiType == 'azure') {
+				provider?.sendApiRequestToAzure(prompt + selection, { command });
 			}
 			// provider?.sendApiRequestToSelfGLM2(prompt + selection, { command });
 		}
