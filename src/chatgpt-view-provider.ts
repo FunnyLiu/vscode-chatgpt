@@ -55,6 +55,8 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 	private currentMessageId: string = "";
 	private response: string = "";
 
+	private prefixPrompt: string = "";
+
 	/**
 	 * Message to be rendered lazily if they haven't been rendered
 	 * in time before resolveWebviewView is called.
@@ -78,7 +80,15 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 		this.setProxyServer();
 		this.setAuthType();
 	}
-
+	// vscode物理上取消选中
+	public clearSelection() {
+		const editor = vscode.window.activeTextEditor;
+		if (editor) {
+			const position = editor.selection.active;
+			const newSelection = new vscode.Selection(position, position);
+			editor.selection = newSelection;
+		}
+	}
 	public resolveWebviewView(
 		webviewView: vscode.WebviewView,
 		_context: vscode.WebviewViewResolveContext,
@@ -168,6 +178,11 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 					break;
 				case "stopGenerating":
 					this.stopGenerating();
+					break;
+				case "cancelSelect":
+					this.clearSelection();
+					this.prefixPrompt = "";
+					// this.selectionChanged("");
 					break;
 				default:
 					break;
@@ -340,6 +355,18 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 		return `You are ChatGPT helping the User with pair programming.`;
 	}
 
+	public selectionChanged(selection: string) {
+		console.log(selection, 'selection');
+		if (selection) {
+			this.prefixPrompt = `请针对以下内容:${selection}进行讨论，讨论内容是：`;
+		} else {
+			this.prefixPrompt = "";
+		}
+		this.sendMessage({
+			type: 'selectionChanged',
+			content: selection
+		}, true);
+	}
 	private processQuestion(question: string, code?: string, language?: string) {
 		if (code != null) {
 			// Add prompt prefix to the code if there was a code block selected
@@ -480,6 +507,7 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 
 
 	public async sendApiRequestToAzure(prompt: string, options: { command: string, code?: string, previousAnswer?: string, language?: string; }) {
+		prompt = this.prefixPrompt + prompt;
 		const SK = this.azureSK;
 		const azureUri = this.azureUrl;
 		if (this.inProgress) {
@@ -589,6 +617,7 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 	}
 	// 文心一言API
 	public async sendApiRequestToYiYan(prompt: string, options: { command: string, code?: string, previousAnswer?: string, language?: string; aiType?: string; }) {
+		prompt = this.prefixPrompt + prompt;
 		if (this.inProgress) {
 			// The AI is still thinking... Do not accept more questions.
 			return;
@@ -675,6 +704,7 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 
 	// 私有chatglm2的API
 	public async sendApiRequestToSelfGLM2(prompt: string, options: { command: string, code?: string, previousAnswer?: string, language?: string; }) {
+		prompt = this.prefixPrompt + prompt;
 		if (this.inProgress) {
 			// The AI is still thinking... Do not accept more questions.
 			return;
@@ -763,7 +793,7 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 			// The AI is still thinking... Do not accept more questions.
 			return;
 		}
-
+		prompt = this.prefixPrompt + prompt;
 		this.questionCounter++;
 
 		// this.logEvent("api-request-sent", { "chinamobile-codehelper.command": options.command, "chinamobile-codehelper.hasCode": String(!!options.code), "chinamobile-codehelper.hasPreviousAnswer": String(!!options.previousAnswer) });
@@ -950,7 +980,15 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 							<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>停止
 						</button>
 					</div>
-
+					<div id="in-selection" class="pl-4 pt-2 flex flex-col hidden" data-license="isc-gnc">
+						<div class="flex items-center justify-between">
+							<div class="typing">针对以下内容提问：</div>
+							<button id="cancel-select-button" class="btn btn-primary flex items-end p-1 pr-2 rounded-md ml-5">
+								<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 mr-2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>取消
+							</button>
+						</div>
+						<pre class="max-h-80 overflow-y-auto overflow-x-auto"><div id="code-block"></div></pre>
+					</div>
 					<div class="p-4 flex items-center pt-2" data-license="isc-gnc">
 						<div class="flex-1 textarea-wrapper">
 							<textarea

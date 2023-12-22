@@ -302,7 +302,7 @@
         "chinamobile-codehelper.promptPrefix.findProblems-enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Enable the prompt prefix used for finding problems for the selected code in the context menu",
+          "description": "是否开启排查问题功能",
           "order": 11
         },
         "chinamobile-codehelper.promptPrefix.optimize": {
@@ -314,7 +314,7 @@
         "chinamobile-codehelper.promptPrefix.optimize-enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Enable the prompt prefix used for optimizing the selected code in the context menu",
+          "description": "是否开启优化代码功能",
           "order": 13
         },
         "chinamobile-codehelper.promptPrefix.explain": {
@@ -326,8 +326,14 @@
         "chinamobile-codehelper.promptPrefix.explain-enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Enable the prompt prefix used for explaining the selected code in the context menu",
+          "description": "是否开启解释代码功能",
           "order": 15
+        },
+        "chinamobile-codehelper.promptPrefix.selectionEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "是否开启自动选取功能",
+          "order": 16
         },
         "chinamobile-codehelper.response.showNotification": {
           "type": "boolean",

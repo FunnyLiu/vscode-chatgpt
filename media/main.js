@@ -160,6 +160,8 @@
                     document.getElementById("question-input").removeAttribute("disabled");
                     document.getElementById("question-input-buttons").classList.remove("hidden");
                 }
+                // 清空选择
+                vscode.postMessage({ type: "cancelSelect" });
                 break;
             case "addQuestion":
                 list.classList.remove("hidden");
@@ -285,6 +287,16 @@
                     document.getElementById("list-conversations-link")?.classList?.remove("hidden");
                 }
                 break;
+            // 光标选中，激活选择取
+            case "selectionChanged":
+                const selection = hljs.highlightAuto(message.content).value;
+                document.getElementById("code-block").innerHTML = selection;
+                if (selection) {
+                    document.getElementById("in-selection")?.classList?.remove("hidden");
+                } else {
+                    document.getElementById("in-selection")?.classList?.add("hidden");
+                }
+                break;
             default:
                 break;
         }
@@ -392,6 +404,15 @@
                 type: "stopGenerating",
             });
 
+            return;
+        }
+
+        // 取消选中
+        if (targetButton?.id === "cancel-select-button") {
+            e.preventDefault();
+            vscode.postMessage({
+                type: "cancelSelect",
+            });
             return;
         }
 

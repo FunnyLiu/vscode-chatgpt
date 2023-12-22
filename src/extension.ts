@@ -187,7 +187,16 @@ export async function activate(context: vscode.ExtensionContext) {
 		}
 	}));
 
-	context.subscriptions.push(view, freeText, resetThread, exportConversation, clearSession, configChanged, adhocCommand, generateCodeCommand, ...registeredCommands);
+	// 监听选中并展示在对话栏
+	const selectionChanged = vscode.window.onDidChangeTextEditorSelection(e => {
+		const isSelectionEnabled = !!vscode.workspace.getConfiguration("chinamobile-codehelper").get("promptPrefix.selectionEnabled");
+		if (!isSelectionEnabled) { return; }
+		const editor = e.textEditor;
+		const selection = editor.document.getText(editor.selection);
+		provider?.selectionChanged(selection);
+	});
+
+	context.subscriptions.push(view, freeText, resetThread, exportConversation, clearSession, configChanged, adhocCommand, generateCodeCommand, selectionChanged, ...registeredCommands);
 
 	const setContext = () => {
 		menuCommands.forEach(command => {
