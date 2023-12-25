@@ -335,6 +335,12 @@
           "description": "是否开启自动选取功能",
           "order": 16
         },
+        "chinamobile-codehelper.promptPrefix.forceClear": {
+          "type": "boolean",
+          "default": true,
+          "description": "是否强制在对话超过轮数后情况上下文",
+          "order": 17
+        },
         "chinamobile-codehelper.response.showNotification": {
           "type": "boolean",
           "default": false,

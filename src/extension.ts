@@ -68,6 +68,10 @@ export async function activate(context: vscode.ExtensionContext) {
 			provider.autoScroll = !!vscode.workspace.getConfiguration("chinamobile-codehelper").get("response.autoScroll");
 		}
 
+		if (e.affectsConfiguration('chinamobile-codehelper.promptPrefix.aiType')) {
+			provider.aiType = vscode.workspace.getConfiguration("chinamobile-codehelper").get("promptPrefix.aiType") || '';
+		}
+
 		if (e.affectsConfiguration('chinamobile-codehelper.useAutoLogin')) {
 			provider.useAutoLogin = vscode.workspace.getConfiguration("chinamobile-codehelper").get("useAutoLogin") || false;
 

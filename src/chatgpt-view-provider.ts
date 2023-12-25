@@ -39,6 +39,7 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 	public yiyanSK: string;
 	public azureSK: string;
 	public azureUrl: string;
+	public forceClear: boolean;
 
 	private apiGpt3?: ChatGPTAPI3;
 	private apiGpt35?: ChatGPTAPI35;
@@ -73,6 +74,7 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 		this.yiyanSK = vscode.workspace.getConfiguration("chinamobile-codehelper").get("promptPrefix.yiyanSK") || "";
 		this.azureSK = vscode.workspace.getConfiguration("chinamobile-codehelper").get("promptPrefix.azureSK") || "";
 		this.azureUrl = vscode.workspace.getConfiguration("chinamobile-codehelper").get("promptPrefix.azureUrl") || "";
+		this.forceClear = vscode.workspace.getConfiguration("chinamobile-codehelper").get("promptPrefix.forceClear") || false;
 
 		this.setMethod();
 		this.setChromeExecutablePath();
@@ -586,8 +588,13 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 			// this.sendMessage({ type: 'showInProgress', inProgress: this.inProgress });
 			// 超过5轮对话就强制置空
 			if (this.conversations.length >= 10) {
-				this.conversations = [];
-				this.sendMessage({ type: 'addResponse', value: '超出一轮对话聊天轮数，请重新开始对话', done: true, id: this.currentMessageId, autoScroll: this.autoScroll, responseInMarkdown });
+				if (this.forceClear) {
+					this.conversations = [];
+					this.sendMessage({ type: 'addResponse', value: '超出一轮对话聊天轮数，请重新开始对话', done: true, id: this.currentMessageId, autoScroll: this.autoScroll, responseInMarkdown });
+				} else {
+					// 保留数组末尾的10个元素
+					this.conversations = this.conversations.slice(-10);
+				}
 			}
 		} catch (error: any) {
 			console.log('error');
@@ -687,8 +694,13 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 			// this.sendMessage({ type: 'showInProgress', inProgress: this.inProgress });
 			// 超过5轮对话就强制置空
 			if (this.conversations.length >= 10) {
-				this.conversations = [];
-				this.sendMessage({ type: 'addResponse', value: '超出一轮对话聊天轮数，请重新开始对话', done: true, id: this.currentMessageId, autoScroll: this.autoScroll, responseInMarkdown });
+				if (this.forceClear) {
+					this.conversations = [];
+					this.sendMessage({ type: 'addResponse', value: '超出一轮对话聊天轮数，请重新开始对话', done: true, id: this.currentMessageId, autoScroll: this.autoScroll, responseInMarkdown });
+				} else {
+					// 保留数组末尾的10个元素
+					this.conversations = this.conversations.slice(-10);
+				}
 			}
 		} catch (error: any) {
 			console.log('error');
@@ -773,8 +785,13 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 			// this.sendMessage({ type: 'showInProgress', inProgress: this.inProgress });
 			// 超过5轮对话就强制置空
 			if (this.conversations.length >= 5) {
-				this.conversations = [];
-				this.sendMessage({ type: 'addResponse', value: '超出一轮对话聊天轮数，请重新开始对话', done: true, id: this.currentMessageId, autoScroll: this.autoScroll, responseInMarkdown });
+				if (this.forceClear) {
+					this.conversations = [];
+					this.sendMessage({ type: 'addResponse', value: '超出一轮对话聊天轮数，请重新开始对话', done: true, id: this.currentMessageId, autoScroll: this.autoScroll, responseInMarkdown });
+				} else {
+					// 保留数组末尾的10个元素
+					this.conversations = this.conversations.slice(-10);
+				}
 			}
 		} catch (error: any) {
 			console.log('error');
@@ -878,8 +895,13 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 			// this.sendMessage({ type: 'showInProgress', inProgress: this.inProgress });
 			// 超过5轮对话就强制置空
 			if (this.conversations.length >= 10) {
-				this.conversations = [];
-				this.sendMessage({ type: 'addResponse', value: '超出一轮对话聊天轮数，请重新开始对话', done: true, id: this.currentMessageId, autoScroll: this.autoScroll, responseInMarkdown });
+				if (this.forceClear) {
+					this.conversations = [];
+					this.sendMessage({ type: 'addResponse', value: '超出一轮对话聊天轮数，请重新开始对话', done: true, id: this.currentMessageId, autoScroll: this.autoScroll, responseInMarkdown });
+				} else {
+					// 保留数组末尾的10个元素
+					this.conversations = this.conversations.slice(-10);
+				}
 			}
 		} catch (error: any) {
 			console.log('error');
