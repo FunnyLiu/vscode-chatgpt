@@ -217,7 +217,7 @@
 
                 if (message.done) {
                     const preCodeList = list.lastChild.querySelectorAll("pre > code");
-
+                    console.log('preCodeList', preCodeList);
                     preCodeList.forEach((preCode) => {
                         preCode.classList.add("input-background", "p-4", "pb-2", "block", "whitespace-pre", "overflow-x-scroll");
                         preCode.parentElement.classList.add("pre-code-element", "relative");
@@ -227,30 +227,36 @@
 
                         // Create copy to clipboard button
                         const copyButton = document.createElement("button");
-                        copyButton.title = "Copy to clipboard";
-                        copyButton.innerHTML = `${clipboardSvg} Copy`;
+                        copyButton.title = "复制当前代码到剪切板";
+                        copyButton.innerHTML = `${clipboardSvg} 复制`;
 
                         copyButton.classList.add("code-element-ext", "p-1", "pr-2", "flex", "items-center", "rounded-lg");
 
                         const insert = document.createElement("button");
-                        insert.title = "Insert the below code to the current file";
-                        insert.innerHTML = `${insertSvg} Insert`;
+                        insert.title = "在当前光标处插入";
+                        insert.innerHTML = `${insertSvg} 插入`;
 
                         insert.classList.add("edit-element-ext", "p-1", "pr-2", "flex", "items-center", "rounded-lg");
 
                         const newTab = document.createElement("button");
-                        newTab.title = "Create a new file with the below code";
-                        newTab.innerHTML = `${plusSvg} New`;
+                        newTab.title = "用以下代码新建文件";
+                        newTab.innerHTML = `${plusSvg} 新建`;
 
                         newTab.classList.add("new-code-element-ext", "p-1", "pr-2", "flex", "items-center", "rounded-lg");
 
                         buttonWrapper.append(copyButton, insert, newTab);
-
                         if (preCode.parentNode.previousSibling) {
-                            preCode.parentNode.parentElement.insertAfter(buttonWrapper, preCode.parentElement.previousSibling);
+                            var referenceNode = preCode.parentElement.previousSibling;
+                            referenceNode.parentNode.insertBefore(buttonWrapper, referenceNode.nextSibling);
                         } else {
-                            preCode.parentNode.parentElement.append(buttonWrapper);
+                            preCode.parentNode.parentElement.appendChild(buttonWrapper);
                         }
+
+                        // if (preCode.parentNode.previousSibling) {
+                        //     preCode.parentNode.parentElement.insertAfter(buttonWrapper, preCode.parentElement.previousSibling);
+                        // } else {
+                        //     preCode.parentNode.parentElement.append(buttonWrapper);
+                        // }
                     });
 
                     existingMessage = document.getElementById(message.id);
@@ -371,6 +377,22 @@
             });
             return;
         }
+        if (e.target?.id === "git-diff-commit") {
+            e.preventDefault();
+            vscode.postMessage({
+                type: "gitHandle",
+                command: 'commit'
+            });
+            return;
+        }
+        if (e.target?.id === "git-diff-question") {
+            e.preventDefault();
+            vscode.postMessage({
+                type: "gitHandle",
+                command: 'question'
+            });
+            return;
+        }
 
         if (targetButton?.id === "login-button") {
             e.preventDefault();
@@ -461,10 +483,10 @@
         if (targetButton?.classList?.contains("code-element-ext")) {
             e.preventDefault();
             navigator.clipboard.writeText(targetButton.parentElement?.nextElementSibling?.lastChild?.textContent).then(() => {
-                targetButton.innerHTML = `${checkSvg} Copied`;
+                targetButton.innerHTML = `${checkSvg} 已复制`;
 
                 setTimeout(() => {
-                    targetButton.innerHTML = `${clipboardSvg} Copy`;
+                    targetButton.innerHTML = `${clipboardSvg} 复制`;
                 }, 1500);
             });
 

@@ -13,6 +13,7 @@
 
 import delay from 'delay';
 import fetch from 'isomorphic-fetch';
+import { execSync } from "node:child_process";
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as vscode from 'vscode';
@@ -91,6 +92,18 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 			editor.selection = newSelection;
 		}
 	}
+	public sendAdaptar(data: any) {
+		// this.sendApiRequest(data.value, { command: "freeText" });
+		if (this.aiType == 'glm2') {
+			this.sendApiRequestToSelfGLM2(data.value, { command: "freeText" });
+		} else if (this.aiType == 'glm3') {
+			this.sendApiRequestToSelfGLM3(data.value, { command: "freeText" });
+		} else if (this.aiType == 'yiyan' || this.aiType == 'yiyanpro') {
+			this.sendApiRequestToYiYan(data.value, { command: "freeText", aiType: this.aiType });
+		} else if (this.aiType == 'azure') {
+			this.sendApiRequestToAzure(data.value, { command: "freeText" });
+		}
+	}
 	public resolveWebviewView(
 		webviewView: vscode.WebviewView,
 		_context: vscode.WebviewViewResolveContext,
@@ -115,15 +128,7 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 					console.log('this.aiType');
 					console.log(this.aiType);
 					// this.sendApiRequest(data.value, { command: "freeText" });
-					if (this.aiType == 'glm2') {
-						this.sendApiRequestToSelfGLM2(data.value, { command: "freeText" });
-					} else if (this.aiType == 'glm3') {
-						this.sendApiRequestToSelfGLM3(data.value, { command: "freeText" });
-					} else if (this.aiType == 'yiyan' || this.aiType == 'yiyanpro') {
-						this.sendApiRequestToYiYan(data.value, { command: "freeText", aiType: this.aiType });
-					} else if (this.aiType == 'azure') {
-						this.sendApiRequestToAzure(data.value, { command: "freeText" });
-					}
+					this.sendAdaptar(data);
 					// this.sendApiRequestToYiYan(data.value, { command: "freeText" });
 					// this.sendApiRequestToSelfGLM2(data.value, { command: "freeText" });
 					break;
@@ -175,6 +180,8 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 
 					this.logEvent("settings-prompt-opened");
 					break;
+				case 'gitHandle':
+					this.gitHandle(data.command);
 				case 'showConversation':
 					/// ...
 					break;
@@ -197,7 +204,41 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 			this.leftOverMessage = null;
 		}
 	}
+	private gitHandle(command: string) {
+		// 获取当前工作空间的根路径
+		const workspaceFolders = vscode.workspace.workspaceFolders;
+		if (workspaceFolders && workspaceFolders.length > 0) {
+			const repoPath = workspaceFolders[0].uri.fsPath; // 获取第一个工作空间的路径
 
+			try {
+				// 指定工作目录并执行git diff
+				const stdout = execSync('git diff', { cwd: repoPath });
+				console.log('Git diff output:', stdout.toString());
+				if (stdout.toString()) {
+					if (command === 'commit') {
+						this.sendAdaptar({
+							value: `You are an expert programmer writing a commit message.
+You went over every file that was changed in it.
+For some of these files changes where too big and were omitted in the files diff summary.
+Please summarize the commit.总结一句中文提交信息：${stdout.toString()}`
+						});
+					} else if (command === 'question') {
+						this.sendAdaptar({
+							value: `You are an expert programmer.
+You went over every file that was changed in it.
+For some of these files changes where too big and were omitted in the files diff summary.
+请用中文列出所有的风险点和优化点：${stdout.toString()}`
+						});
+					}
+				}
+			} catch (err) {
+				this.sendMessage({ type: 'addResponse', value: '当前项目不是一个git项目，无法使用git相关功能', done: true, id: this.currentMessageId, autoScroll: this.autoScroll });
+			}
+		} else {
+			console.log("No workspace open.");
+			this.sendMessage({ type: 'addResponse', value: '当前项目不是一个git项目，无法使用git相关功能', done: true, id: this.currentMessageId, autoScroll: this.autoScroll });
+		}
+	}
 	private stopGenerating(): void {
 		this.abortController?.abort?.();
 		this.inProgress = false;
@@ -983,6 +1024,19 @@ export default class ChatGptViewProvider implements vscode.WebviewViewProvider {
 </svg>
 								中国移动编码助手
 							</div>
+						</div>
+						<div class="flex flex-col" style="cursor:pointer">
+							<div id="git-diff-commit" style="border: 1px solid #3e3e3e;color: #f2f2f280; padding: 8px 0;margin-bottom: 10px;">总结当前未提交代码的提交信息</div>
+							<div id="git-diff-question" style="border: 1px solid #3e3e3e;color: #f2f2f280; padding: 8px 0;margin-bottom: 10px;">排查当前未提交代码的潜在问题</div>
+						</div>
+						<div class="flex flex-col gap-4 h-full items-center justify-end text-center hidden">
+							<button id="login-button" class="mb-4 btn btn-primary flex gap-2 justify-center p-3 rounded-md">Log in</button>
+							<button id="list-conversations-link" class="hidden mb-4 btn btn-primary flex gap-2 justify-center p-3 rounded-md" title="You can access this feature via the kebab menu below. NOTE: Only available with Browser Auto-login method">
+								<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 8.511c.884.284 1.5 1.128 1.5 2.097v4.286c0 1.136-.847 2.1-1.98 2.193-.34.027-.68.052-1.02.072v3.091l-3-3c-1.354 0-2.694-.055-4.02-.163a2.115 2.115 0 01-.825-.242m9.345-8.334a2.126 2.126 0 00-.476-.095 48.64 48.64 0 00-8.048 0c-1.131.094-1.976 1.057-1.976 2.192v4.286c0 .837.46 1.58 1.155 1.951m9.345-8.334V6.637c0-1.621-1.152-3.026-2.76-3.235A48.455 48.455 0 0011.25 3c-2.115 0-4.198.137-6.24.402-1.608.209-2.76 1.614-2.76 3.235v6.226c0 1.621 1.152 3.026 2.76 3.235.577.075 1.157.14 1.74.194V21l4.155-4.155" /></svg>&nbsp;Show conversations
+							</button>
+							<p class="max-w-sm text-center text-xs text-slate-500">
+								<a title="" id="settings-button" href="#">Update settings</a>&nbsp; | &nbsp;<a title="" id="settings-prompt-button" href="#">Update prompts</a>
+							</p>
 						</div>
 					</div>
 
